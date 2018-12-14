@@ -14,7 +14,9 @@ exports.get = async (req, res, next) => {
 
 exports.updateRcms = async (req, res, next) => {
     try {
-        var response = await rcmsService.updateRcms(req.params.id, req.params.id_exercicio, req.params.id_orgao);        
+        var response = await rcmsService.updateRcms(req.params.id, req.params.id_exercicio, req.params.id_orgao).then(function (result) {
+            return result;
+        });
         return res.status(response.status).send(response);
     } catch (error) {
         res.status(500).send({
@@ -25,7 +27,7 @@ exports.updateRcms = async (req, res, next) => {
 }
 
 exports.getById = async (req, res, next) => {
-    try {        
+    try {
         var response = await rcmsService.getById(req.params.id, req.params.id_exercicio, req.params.id_orgao);
         return res.status(response.status).send(response);
     } catch (error) {
@@ -38,11 +40,11 @@ exports.getById = async (req, res, next) => {
 
 exports.getFromMongo = async (req, res, next) => {
     try {
-        var response = await rcmsService.getFromMongo();           
+        var response = await rcmsService.getFromMongo();
         return res.status(response.status).send(response);
     } catch (error) {
         res.status(500).send({
-            ok: false,                        
+            ok: false,
             message: error.message
         });
     }

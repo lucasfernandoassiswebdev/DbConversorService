@@ -39,27 +39,27 @@ exports.getFromMongo = async () => {
 }
 
 exports.updateRcms = async (id_rcms, id_exercicio, id_orgao) => {
-    const rcms_original = await doQuery(rcmsFirebirdRepository.getById, id_rcms, id_exercicio, id_orgao).then(async function (result) {
-        return await getItens(result).then(function (resultado) {
-            console.log('achei o rcms');
-            return resultado;
+    return new Promise(async function (resolve, reject) {
+        var rcms_original;
+        await doQuery(rcmsFirebirdRepository.getById, id_rcms, id_exercicio, id_orgao).then(async function (result) {
+            await getItens(result).then(function (resultado) {
+                rcms_original = resultado;
+            });
+        }).catch(function (error) {
+            reject({
+                ok: false,
+                status: 500,
+                message: error.message
+            });
         });
-    }).catch(function (error) {
-        return {
-            ok: false,
-            status: 500,
-            message: error.message
-        }
-    });
 
-    console.log('vou preencher a variavel');
-    return await rcmsMongoRepository.save(rcms_original.content[0], async function (response) {
-        console.log('aqui a variável tem valor: ' + response);
-        return {
-            ok: true,
-            status: response.status,
-            message: response.message
-        }
+        rcmsMongoRepository.save(rcms_original.content[0], async function (response) {
+            return resolve({
+                ok: true,
+                status: 201,
+                message: response.message
+            });
+        });
     });
 }
 
