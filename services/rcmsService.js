@@ -1,32 +1,92 @@
-const rcmsRepository = require('../repositories/rcmsRepository');
-exports.get = async () => {
-    return await doQuery(rcmsRepository.get).then(function (result) {
-        // result.content.forEach(function (item, index) {
-        //     item.itens = doQuery(rcmsRepository.getItens, item.ID_RCMS).then(function (result) {
-        //         return result.content;
-        //     }).catch(function (error) {
-        //         return error;
-        //     });            
-        // });
+const rcmsFirebirdRepository = require('../repositories/firebird/rcmsRepository');
+const rcmsMongoRepository = require('../repositories//mongoDB/rcmsRepository');
 
-        return result;
+exports.get = async () => {
+    return await doQuery(rcmsFirebirdRepository.get).then(async function (result) {
+        return await getItens(result).then(function (resultado) {
+            return resultado;
+        });
     }).catch(function (error) {
         return {
+            ok: false,
             status: 500,
-            message: 'Algo deu errado'
+            message: error.message
         }
     });
 }
 
-exports.getById = async (idRcms) => {
-    var rcms = rcmsRepository.getById(idRcms);
+exports.getById = async (id_rcms, id_exercicio, id_orgao) => {
+    return await doQuery(rcmsFirebirdRepository.getById, id_rcms, id_exercicio, id_orgao).then(async function (result) {
+        return await getItens(result).then(function (resultado) {
+            return resultado;
+        });
+    }).catch(function (error) {
+        return {
+            ok: false,
+            status: 500,
+            message: error.message
+        }
+    });
 }
 
-function doQuery(callback, parameter) {
+exports.getFromMongo = async () => {
+    var retorno = await rcmsMongoRepository.getAll()
+    return {
+        ok: true,
+        status: 200,
+        content: retorno
+    };
+}
+
+exports.updateRcms = async (id_rcms, id_exercicio, id_orgao) => {
+    const rcms_original = await doQuery(rcmsFirebirdRepository.getById, id_rcms, id_exercicio, id_orgao).then(async function (result) {
+        return await getItens(result).then(function (resultado) {
+            console.log('achei o rcms');
+            return resultado;
+        });
+    }).catch(function (error) {
+        return {
+            ok: false,
+            status: 500,
+            message: error.message
+        }
+    });
+
+    console.log('vou preencher a variavel');
+    return await rcmsMongoRepository.save(rcms_original.content[0], async function (response) {
+        console.log('aqui a variável tem valor: ' + response);
+        return {
+            ok: true,
+            status: response.status,
+            message: response.message
+        }
+    });
+}
+
+async function getItens(lista_rcms) {
     return new Promise(function (resolve, reject) {
-        if (parameter != undefined)
-            resolve(callback(parameter));
-        else
-            resolve(callback());
+        lista_rcms.content.forEach(function (item, index) {
+            doQuery(rcmsFirebirdRepository.getItens, item.ID_RCMS).then(function (result) {
+                item.ITENS = result.content;
+
+                if ((index + 1) == lista_rcms.content.length)
+                    resolve(lista_rcms);
+            }).catch(function (error) {
+                reject(error);
+            });
+        });
+    });
+}
+
+function doQuery(callback, ...parameters) {
+    return new Promise(function (resolve, reject) {
+        try {
+            if (parameters != undefined)
+                resolve(callback(parameters));
+            else
+                resolve(callback());
+        } catch (error) {
+            reject(error);
+        }
     });
 }
